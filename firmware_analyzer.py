@@ -4,6 +4,7 @@ import io
 import csv
 import collections
 import concurrent.futures
+import argparse
 
 WRITE_MODE = 'w'
 READ_MODE = "r"
@@ -69,5 +70,10 @@ def update_dict(dict, string, size=1):
 
 
 if __name__ == '__main__':
-    analyze_firmware("C:/Users/gubera/Desktop/sample.zip", "C:/Users/gubera/Desktop/test")
+    parser = argparse.ArgumentParser(prog='firmware_analyzer',
+                                     description='special authentication tokens collector')
+    parser.add_argument('directory_path', help="path to a zip file on the disk (the firmware file)")
+    parser.add_argument('csv_output_path', help="path to a CSV file output")
+    args = parser.parse_args()
 
+    analyze_firmware(args.directory_path, args.csv_output_path)
