@@ -78,8 +78,6 @@ def process_files_under_zip_file(directory_path, token_occurrences_dict, path_oc
         number_of_threads (int): The maximum number of threads that can be used to execute process files.
        """
     with concurrent.futures.ThreadPoolExecutor(number_of_threads) as executor:
-        futures = []
-        directory_path_file = zipfile.ZipFile(directory_path, READ_MODE)
         # The thread poll is being used only for processing the files - reduce IO/CPU
         # The strategy is to process as many files as you can, and afterwards parse each file's result to major
         # dictionaries.
@@ -94,7 +92,7 @@ def process_files_under_zip_file(directory_path, token_occurrences_dict, path_oc
         # penalty is better then locking the IO processing action and spending CPU time.
         # TBD: is there a need to add a option to config the other strategy were each thread updates the dictionaries.
         # Out of scope.
-
+        directory_path_file = zipfile.ZipFile(directory_path, READ_MODE)
         future_to_file_name = {}
         for file_name in directory_path_file.namelist():
             # out of scope - monitor threads, no logging
@@ -102,6 +100,7 @@ def process_files_under_zip_file(directory_path, token_occurrences_dict, path_oc
                                                 file_name=file_name)] = file_name
         for future in concurrent.futures.as_completed(future_to_file_name, MAX_TIMEOUT):
             # Out of scope - error is not handled as there is no monitor/logging
+            file_name = future_to_file_name[future]
             try:
                 result = future.result()
             except Exception as exc:
@@ -127,13 +126,14 @@ def handle_file(directory_path_file, file_name):
        """
     with directory_path_file.open(file_name, READ_MODE) as file:
         file_content = file.read()
-        return process_file_content(file_name, file_content)
+        ordered_dict = process_file_content(file_content)
+        if ordered_dict:
+            return {'file_name': file_name, 'ordered_dict': ordered_dict}
 
 
-def process_file_content(file_name, file_content):
+def process_file_content(file_content):
     """Find the above pattern and return a dictionary of token to occurrences in the processed file.
         Parameters:
-                file_name (string): file name that will be process
                 file_content (binary): file content that will be process
         Returns:
         OrderedDict:Returning Ordered dictionary of token to occurrences Ordered by occurrences and then token (order
@@ -147,10 +147,7 @@ def process_file_content(file_name, file_content):
             file_dict = update_dict(file_dict, token)
         # OrderedDict - Dictionary that remembers insertion order
         # Sort by occurrences and then bt token - order from low to high
-        ordered_dict = collections.OrderedDict(sorted(file_dict.items(), key=lambda x: (x[1], x[0])))
-        return {'file_name': file_name, 'ordered_dict': ordered_dict}
-    else:
-        return
+        return collections.OrderedDict(sorted(file_dict.items(), key=lambda x: (x[1], x[0])))
 
 
 def update_dict(dictionary, key, size=1):
