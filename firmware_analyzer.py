@@ -80,18 +80,20 @@ def travel_zip_file(directory_path, token_occurrences_dict, path_occurrences_tok
     with concurrent.futures.ThreadPoolExecutor(number_of_threads) as executor:
         futures = []
         directory_path_file = zipfile.ZipFile(directory_path, READ_MODE)
-        # The thread poll is being used only for processing the files - reduce IO
-        # The strategy is to process as many files as you can, and afterwards parse ech file result to major
+        # The thread poll is being used only for processing the files - reduce IO/CPU
+        # The strategy is to process as many files as you can, and afterwards parse each file's result to major
         # dictionaries.
         # pros:
         # There is no locking whatsoever (no need to update common resources) in the most expensive compute action
         # (processing the files)
         # cons:
-        # 1. Each Thread upload a file to the memory (can cause out of memory issues) - note number of threads is a user
-        # input parameters
-        # 2. All the results of executed processes of each file are saved in "futures" until all of the files are being
-        # scanned, this can cause out of memory issues. we assume that holding the data and consume memory is better
-        # then lock the IO processing action and spanned CPU time.
+        # 1. Each Thread upload a file to the memory (can cause out of memory issues) - Note: number of threads is a
+        # user's input parameter
+        # 2. All the results of the executed processes of each file are saved in "futures" until all of the files were
+        # scanned, this can cause out of memory issues. we assume that holding the data and consuming this memory
+        # penalty is better then locking the IO processing action and spanning CPU time.
+        # TBD: is there a need to add a option to config the other strategy were each thread updates the dictionaries.
+        # out of scope.
 
         for file_name in directory_path_file.namelist():
             futures.append(executor.submit(handle_file, directory_path_file=directory_path_file, file_name=file_name))
