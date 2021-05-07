@@ -106,7 +106,7 @@ def process_files_under_zip_file(directory_path, token_occurrences_dict, path_oc
             except Exception as exc:
                 print('%r generated an exception: %s' % (file_name, exc))
             else:
-                # no match token
+                # if match token
                 if result and result['ordered_dict']:
                     path_occurrences_token_dict[result['file_name']] = result['ordered_dict']
                     for k, v in result['ordered_dict'].items():
