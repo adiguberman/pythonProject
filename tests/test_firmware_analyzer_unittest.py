@@ -27,6 +27,12 @@ class TestFirmwareAnalyzer(unittest.TestCase):
                 "<Tkn998QYXPKTkn>\\r\\n'),\n call().__exit__(None, None, None)]"
         self.assertEqual(str(mock_open.mock_calls), calls)
 
+        dict1, dict2 = {}, {}
+        firmware_analyzer.process_files_under_zip_file("resources/testsWithFolders.zip", dict1, dict2, 1)
+        firmware_analyzer.create_output(dict1, dict2, fake_file_path)
+        self.assertEqual(str(mock_print.mock_calls), "[call('<Tkn998QYXPKTkn>: 2'), call('<Tkn998QYXPKTkn>: 4')]")
+
+
     def test_process_files_under_zip_file(self):
         with self.assertRaises(FileNotFoundError):
             firmware_analyzer.process_files_under_zip_file('dontExist', {}, {}, 1)
