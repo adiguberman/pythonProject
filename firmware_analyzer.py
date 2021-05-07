@@ -99,9 +99,11 @@ def travel_zip_file(directory_path, token_occurrences_dict, path_occurrences_tok
             futures.append(executor.submit(handle_file, directory_path_file=directory_path_file, file_name=file_name))
         for future in concurrent.futures.as_completed(futures):
             result = future.result()
-            path_occurrences_token_dict[file_name] = result
-            for k, v in result.items():
-                token_occurrences_dict = update_dict(token_occurrences_dict, k, v)
+            dict_ = result['ordered_dict']
+            if dict_:
+                path_occurrences_token_dict[result['file_name']] = dict_
+                for k, v in dict_.items():
+                    token_occurrences_dict = update_dict(token_occurrences_dict, k, v)
 
 
 def handle_file(directory_path_file, file_name):
@@ -119,12 +121,13 @@ def handle_file(directory_path_file, file_name):
         items_file = io.TextIOWrapper(file)
         for line in items_file:
             for word in line.split():
-                z = re.match(PATTERN, word)
+                z = re.findall(PATTERN, word)
                 if z:
-                    token = z.string
-                    file_dict = update_dict(file_dict, token)
-        return collections.OrderedDict(sorted(file_dict.items(), key=lambda x: (x[1], x[0]),
-                                              reverse=True))  # Dictionary that remembers insertion order
+                    token = z[0]
+                    file_dict = update_dict(file_dict, token, len(z))
+        # Dictionary that remembers insertion order
+        ordered_dict = collections.OrderedDict(sorted(file_dict.items(), key=lambda x: (x[1], x[0]), reverse=True))
+        return {'file_name': file_name, 'ordered_dict': ordered_dict}
 
 
 def update_dict(dictionary, key, size=1):
@@ -161,7 +164,6 @@ def create_output(token_occurrences_dict, path_occurrences_token_dict, csv_outpu
         for key, value in path_token_occurrences_dict_ordered.items():
             for k, v in value.items():
                 writer.writerow([key, v, k])
-                print(key, v, k)
     print('\n'.join("{}: {}".format(k, v) for k, v in token_occurrences_dict.items()))
 
 
