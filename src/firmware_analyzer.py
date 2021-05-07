@@ -116,6 +116,8 @@ def process_files_under_zip_file(directory_path, token_occurrences_dict, path_oc
 def handle_file(directory_path_file, file_name):
     """Open a file from the archived zip, and process it. Find the above pattern and
     return a dictionary of token to occurrences in the processed file.
+    Note: we open a zip file without extracting it reads the contents of the file for future use
+    and saves storage space.
         Parameters:
                 directory_path_file (ZipFile): zip file on the disk (the firmware file)
                 file_name (string): file that will be process

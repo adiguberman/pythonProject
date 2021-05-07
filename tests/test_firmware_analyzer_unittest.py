@@ -11,6 +11,36 @@ FILE_NAME = 'file_name'
 
 class TestFirmwareAnalyzer(unittest.TestCase):
 
+    def test_process_files_under_zip_file(self):
+        with self.assertRaises(FileNotFoundError):
+            firmware_analyzer.process_files_under_zip_file('dontExist', {}, {}, 1)
+        # No folders test
+        dict1, dict2 = {}, {}
+        firmware_analyzer.process_files_under_zip_file("resources/tests.zip", dict1, dict2, 1)
+        self.assertEqual(len(dict1), 1)
+        self.assertEqual(dict1.get(b'<Tkn998QYXPKTkn>'), 2)
+        self.assertEqual(len(dict2), 2)
+        file = dict2.get('TokenText.txt')
+        self.assertEqual(file.get(b'<Tkn998QYXPKTkn>'), 1)
+        file = dict2.get('TokenBin.dll')
+        self.assertEqual(file.get(b'<Tkn998QYXPKTkn>'), 1)
+
+        # with folders test
+        dict1, dict2 = {}, {}
+        firmware_analyzer.process_files_under_zip_file("resources/testsWithFolders.zip", dict1, dict2, 1)
+        self.assertEqual(len(dict1), 1)
+        self.assertEqual(dict1.get(b'<Tkn998QYXPKTkn>'), 4)
+        self.assertEqual(len(dict2), 4)
+        file = dict2.get('TokenText.txt')
+        self.assertEqual(file.get(b'<Tkn998QYXPKTkn>'), 1)
+        file = dict2.get('TokenBin.dll')
+        self.assertEqual(file.get(b'<Tkn998QYXPKTkn>'), 1)
+        file = dict2.get('folder/TokenText.txt')
+        self.assertEqual(file.get(b'<Tkn998QYXPKTkn>'), 1)
+        file = dict2.get('folder/TokenBin.dll')
+        self.assertEqual(file.get(b'<Tkn998QYXPKTkn>'), 1)
+
+
     def test_update_dict(self):
         res1 = {}
         firmware_analyzer.update_dict(res1, b'test')
