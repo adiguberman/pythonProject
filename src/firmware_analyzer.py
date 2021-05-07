@@ -95,22 +95,23 @@ def process_files_under_zip_file(directory_path, token_occurrences_dict, path_oc
         # TBD: is there a need to add a option to config the other strategy were each thread updates the dictionaries.
         # Out of scope.
 
+        future_to_file_name = {}
         for file_name in directory_path_file.namelist():
             # out of scope - monitor threads, no logging
-            futures.append(executor.submit(handle_file, directory_path_file=directory_path_file, file_name=file_name))
-        for future in concurrent.futures.as_completed(futures, MAX_TIMEOUT):
+            future_to_file_name[executor.submit(handle_file, directory_path_file=directory_path_file,
+                                                file_name=file_name)] = file_name
+        for future in concurrent.futures.as_completed(future_to_file_name, MAX_TIMEOUT):
             # Out of scope - error is not handled as there is no monitor/logging
-            # Raises:
-            #             CancelledError: If the future was cancelled.
-            #             TimeoutError: If the future didn't finish executing before the given
-            #                 timeout.
-            #             Exception: If the call raised then that exception will be raised.
-            result = future.result()
-            # no match token
-            if result and result['ordered_dict']:
-                path_occurrences_token_dict[result['file_name']] = result['ordered_dict']
-                for k, v in result['ordered_dict'].items():
-                    token_occurrences_dict = update_dict(token_occurrences_dict, k, v)
+            try:
+                result = future.result()
+            except Exception as exc:
+                print('%r generated an exception: %s' % (file_name, exc))
+            else:
+                # no match token
+                if result and result['ordered_dict']:
+                    path_occurrences_token_dict[result['file_name']] = result['ordered_dict']
+                    for k, v in result['ordered_dict'].items():
+                        token_occurrences_dict = update_dict(token_occurrences_dict, k, v)
 
 
 def handle_file(directory_path_file, file_name):
