@@ -4,12 +4,28 @@ from src import firmware_analyzer
 
 import zipfile
 
+from unittest.mock import patch, mock_open
+
 ORDERED_DICT = 'ordered_dict'
 
 FILE_NAME = 'file_name'
 
 
 class TestFirmwareAnalyzer(unittest.TestCase):
+
+    @patch('builtins.open')
+    @patch('builtins.print')
+    def test(self, mock_print, mock_open):
+        self.maxDiff = None
+        fake_file_path = 'file/path/mock'
+        dict1, dict2 = {}, {}
+        firmware_analyzer.process_files_under_zip_file("resources/tests.zip", dict1, dict2, 1)
+        firmware_analyzer.create_output(dict1, dict2, fake_file_path)
+        self.assertEqual(str(mock_print.mock_calls), "[call('<Tkn998QYXPKTkn>: 2')]")
+        calls = "[call('file/path/mock', 'w', newline=''),\n call().__enter__(),\n call().__enter__().write(" \
+                "'TokenBin.dll,1,<Tkn998QYXPKTkn>\\r\\n'),\n call().__enter__().write('TokenText.txt,1," \
+                "<Tkn998QYXPKTkn>\\r\\n'),\n call().__exit__(None, None, None)]"
+        self.assertEqual(str(mock_open.mock_calls), calls)
 
     def test_process_files_under_zip_file(self):
         with self.assertRaises(FileNotFoundError):
