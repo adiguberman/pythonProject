@@ -40,7 +40,6 @@ class TestFirmwareAnalyzer(unittest.TestCase):
         file = dict2.get('folder/TokenBin.dll')
         self.assertEqual(file.get(b'<Tkn998QYXPKTkn>'), 1)
 
-
     def test_update_dict(self):
         res1 = {}
         firmware_analyzer.update_dict(res1, b'test')
