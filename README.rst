@@ -3,6 +3,7 @@ Interview Question
 ##Implementation
 ###1. Firmware Analyzer
 
+
 Suppose that one of the automotive vendors sent to you a firmware archive
 and asked you to find different security issues. We know that some of the
 vendors are using a special authentication tokens in the following format:
