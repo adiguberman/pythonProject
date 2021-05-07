@@ -30,15 +30,14 @@ import collections
 import concurrent.futures
 import argparse
 
+
 DECODE_FORMAT = 'ascii'
 WRITE_MODE = 'w'
 READ_MODE = "r"
 NUMBER_OF_THREADS = 5
-# Pattern of Token
-PATTERN = "<Tkn[0-9][0-9][0-9][A-Z][A-Z][A-Z][A-Z][A-Z]Tkn>"
 
 
-def parse_import():
+def parse_input():
     """parse input from the user
         Returns:
         list:Returning list of arguments
@@ -62,12 +61,12 @@ def analyze_firmware(directory_path, csv_output_path, number_of_threads):
     token_occurrences_dict = {}  # mapping between token to occurrences
     path_token_occurrences_dict = {}  # mapping between file name token to occurrences
 
-    travel_zip_file(directory_path, token_occurrences_dict, path_token_occurrences_dict, number_of_threads)
+    process_files_under_zip_file(directory_path, token_occurrences_dict, path_token_occurrences_dict, number_of_threads)
 
     create_output(token_occurrences_dict, path_token_occurrences_dict, csv_output_path)
 
 
-def travel_zip_file(directory_path, token_occurrences_dict, path_occurrences_token_dict, number_of_threads):
+def process_files_under_zip_file(directory_path, token_occurrences_dict, path_occurrences_token_dict, number_of_threads):
     """go over the files archived in zip file on the disk (the firmware file)
        and orchestrate the process of the files
        Updates dictionaries with the results
@@ -99,6 +98,7 @@ def travel_zip_file(directory_path, token_occurrences_dict, path_occurrences_tok
             futures.append(executor.submit(handle_file, directory_path_file=directory_path_file, file_name=file_name))
         for future in concurrent.futures.as_completed(futures):
             result = future.result()
+            # no much token - continue
             if result and result['ordered_dict']:
                 path_occurrences_token_dict[result['file_name']] = result['ordered_dict']
                 for k, v in result['ordered_dict'].items():
@@ -123,6 +123,7 @@ def handle_file(directory_path_file, file_name):
             for token in z:
                 file_dict = update_dict(file_dict, token)
             # OrderedDict - Dictionary that remembers insertion order
+            # Sort by occurrences and token
             ordered_dict = collections.OrderedDict(sorted(file_dict.items(), key=lambda x: (x[1], x[0]), reverse=True))
             return {'file_name': file_name, 'ordered_dict': ordered_dict}
         else:
@@ -159,14 +160,16 @@ def create_output(token_occurrences_dict, path_occurrences_token_dict, csv_outpu
     with open(csv_output_path, WRITE_MODE, newline='') as file:
         writer = csv.writer(file)
         # OrderedDict - Dictionary that remembers insertion order
+        # Sort by path
         path_token_occurrences_dict_ordered = collections.OrderedDict(
             sorted(path_occurrences_token_dict.items()))
         for key, value in path_token_occurrences_dict_ordered.items():
             for k, v in value.items():
                 writer.writerow([key, v, k.decode(DECODE_FORMAT)])
+    # print dictionary without brackets
     print('\n'.join("{}: {}".format(k.decode(DECODE_FORMAT), v) for k, v in token_occurrences_dict.items()))
 
 
 if __name__ == '__main__':
-    args = parse_import()
+    args = parse_input()
     analyze_firmware(args.directory_path, args.csv_output_path, args.number_of_threads)
