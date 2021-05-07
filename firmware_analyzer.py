@@ -122,7 +122,7 @@ def handle_file(directory_path_file, file_name):
         if z:
             for token in z:
                 file_dict = update_dict(file_dict, token)
-            # Dictionary that remembers insertion order
+            # OrderedDict - Dictionary that remembers insertion order
             ordered_dict = collections.OrderedDict(sorted(file_dict.items(), key=lambda x: (x[1], x[0]), reverse=True))
             return {'file_name': file_name, 'ordered_dict': ordered_dict}
         else:
@@ -158,8 +158,9 @@ def create_output(token_occurrences_dict, path_occurrences_token_dict, csv_outpu
        """
     with open(csv_output_path, WRITE_MODE, newline='') as file:
         writer = csv.writer(file)
+        # OrderedDict - Dictionary that remembers insertion order
         path_token_occurrences_dict_ordered = collections.OrderedDict(
-            sorted(path_occurrences_token_dict.items()))  # Dictionary that remembers insertion order
+            sorted(path_occurrences_token_dict.items()))
         for key, value in path_token_occurrences_dict_ordered.items():
             for k, v in value.items():
                 writer.writerow([key, v, k.decode(DECODE_FORMAT)])
