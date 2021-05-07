@@ -25,16 +25,16 @@ For example if token <Tkn435JFIRKTkn> was found only in f1< 5 times and in f2 <3
 
 import zipfile
 import re
-import io
 import csv
 import collections
 import concurrent.futures
 import argparse
 
+DECODE_FORMAT = 'ascii'
 WRITE_MODE = 'w'
 READ_MODE = "r"
 NUMBER_OF_THREADS = 5
-# Pattern can be a part of a word?
+# Pattern of Token
 PATTERN = "<Tkn[0-9][0-9][0-9][A-Z][A-Z][A-Z][A-Z][A-Z]Tkn>"
 
 
@@ -99,10 +99,9 @@ def travel_zip_file(directory_path, token_occurrences_dict, path_occurrences_tok
             futures.append(executor.submit(handle_file, directory_path_file=directory_path_file, file_name=file_name))
         for future in concurrent.futures.as_completed(futures):
             result = future.result()
-            dict_ = result['ordered_dict']
-            if dict_:
-                path_occurrences_token_dict[result['file_name']] = dict_
-                for k, v in dict_.items():
+            if result and result['ordered_dict']:
+                path_occurrences_token_dict[result['file_name']] = result['ordered_dict']
+                for k, v in result['ordered_dict'].items():
                     token_occurrences_dict = update_dict(token_occurrences_dict, k, v)
 
 
@@ -115,16 +114,19 @@ def handle_file(directory_path_file, file_name):
         Returns:
         OrderedDict:Returning Ordered dictionary  of token to occurrences by occurrences and then token (Dictionary that
         remembers insertion order)
+        file_name:Returning file name that was scanned
        """
     file_dict = {}
     with directory_path_file.open(file_name, READ_MODE) as file:
         z = re.findall(b'<Tkn[0-9][0-9][0-9][A-Z][A-Z][A-Z][A-Z][A-Z]Tkn>', file.read())
-        # TODO check if empty and return
-        for token in z:
-            file_dict = update_dict(file_dict, token)
-        # Dictionary that remembers insertion order
-        ordered_dict = collections.OrderedDict(sorted(file_dict.items(), key=lambda x: (x[1], x[0]), reverse=True))
-        return {'file_name': file_name, 'ordered_dict': ordered_dict}
+        if z:
+            for token in z:
+                file_dict = update_dict(file_dict, token)
+            # Dictionary that remembers insertion order
+            ordered_dict = collections.OrderedDict(sorted(file_dict.items(), key=lambda x: (x[1], x[0]), reverse=True))
+            return {'file_name': file_name, 'ordered_dict': ordered_dict}
+        else:
+            return
 
 
 def update_dict(dictionary, key, size=1):
@@ -160,8 +162,8 @@ def create_output(token_occurrences_dict, path_occurrences_token_dict, csv_outpu
             sorted(path_occurrences_token_dict.items()))  # Dictionary that remembers insertion order
         for key, value in path_token_occurrences_dict_ordered.items():
             for k, v in value.items():
-                writer.writerow([key, v, k.decode('ascii')])
-    print('\n'.join("{}: {}".format(k.decode('ascii'), v) for k, v in token_occurrences_dict.items()))
+                writer.writerow([key, v, k.decode(DECODE_FORMAT)])
+    print('\n'.join("{}: {}".format(k.decode(DECODE_FORMAT), v) for k, v in token_occurrences_dict.items()))
 
 
 if __name__ == '__main__':
