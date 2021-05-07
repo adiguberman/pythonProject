@@ -118,13 +118,10 @@ def handle_file(directory_path_file, file_name):
        """
     file_dict = {}
     with directory_path_file.open(file_name, READ_MODE) as file:
-        items_file = io.TextIOWrapper(file)
-        for line in items_file:
-            for word in line.split():
-                z = re.findall(PATTERN, word)
-                if z:
-                    token = z[0]
-                    file_dict = update_dict(file_dict, token, len(z))
+        z = re.findall(b'<Tkn[0-9][0-9][0-9][A-Z][A-Z][A-Z][A-Z][A-Z]Tkn>', file.read())
+        # TODO check if empty and return
+        for token in z:
+            file_dict = update_dict(file_dict, token)
         # Dictionary that remembers insertion order
         ordered_dict = collections.OrderedDict(sorted(file_dict.items(), key=lambda x: (x[1], x[0]), reverse=True))
         return {'file_name': file_name, 'ordered_dict': ordered_dict}
@@ -163,8 +160,8 @@ def create_output(token_occurrences_dict, path_occurrences_token_dict, csv_outpu
             sorted(path_occurrences_token_dict.items()))  # Dictionary that remembers insertion order
         for key, value in path_token_occurrences_dict_ordered.items():
             for k, v in value.items():
-                writer.writerow([key, v, k])
-    print('\n'.join("{}: {}".format(k, v) for k, v in token_occurrences_dict.items()))
+                writer.writerow([key, v, k.decode('ascii')])
+    print('\n'.join("{}: {}".format(k.decode('ascii'), v) for k, v in token_occurrences_dict.items()))
 
 
 if __name__ == '__main__':
