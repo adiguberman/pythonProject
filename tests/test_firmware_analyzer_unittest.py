@@ -15,7 +15,7 @@ class TestFirmwareAnalyzer(unittest.TestCase):
 
     @patch('builtins.open')
     @patch('builtins.print')
-    def test(self, mock_print, mock_open):
+    def test_create_output(self, mock_print, mock_open):
         self.maxDiff = None
         fake_file_path = 'file/path/mock'
         dict1, dict2 = {}, {}
