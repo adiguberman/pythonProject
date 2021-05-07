@@ -30,11 +30,11 @@ import collections
 import concurrent.futures
 import argparse
 
-
 DECODE_FORMAT = 'ascii'
 WRITE_MODE = 'w'
 READ_MODE = "r"
 NUMBER_OF_THREADS = 5
+MAX_TIMEOUT = 3600  # 1 Hour
 
 
 def parse_input():
@@ -66,7 +66,8 @@ def analyze_firmware(directory_path, csv_output_path, number_of_threads):
     create_output(token_occurrences_dict, path_token_occurrences_dict, csv_output_path)
 
 
-def process_files_under_zip_file(directory_path, token_occurrences_dict, path_occurrences_token_dict, number_of_threads):
+def process_files_under_zip_file(directory_path, token_occurrences_dict, path_occurrences_token_dict,
+                                 number_of_threads):
     """go over the files archived in zip file on the disk (the firmware file)
        and orchestrate the process of the files
        Updates dictionaries with the results
@@ -97,9 +98,15 @@ def process_files_under_zip_file(directory_path, token_occurrences_dict, path_oc
         for file_name in directory_path_file.namelist():
             # out of scope - monitor threads, no logging
             futures.append(executor.submit(handle_file, directory_path_file=directory_path_file, file_name=file_name))
-        for future in concurrent.futures.as_completed(futures):
+        for future in concurrent.futures.as_completed(futures, MAX_TIMEOUT):
+            # Out of scope - error is not handled as there is no monitor/logging
+            # Raises:
+            #             CancelledError: If the future was cancelled.
+            #             TimeoutError: If the future didn't finish executing before the given
+            #                 timeout.
+            #             Exception: If the call raised then that exception will be raised.
             result = future.result()
-            # no match token or error - continue
+            # no match token
             if result and result['ordered_dict']:
                 path_occurrences_token_dict[result['file_name']] = result['ordered_dict']
                 for k, v in result['ordered_dict'].items():
@@ -113,22 +120,36 @@ def handle_file(directory_path_file, file_name):
                 directory_path_file (ZipFile): zip file on the disk (the firmware file)
                 file_name (string): file that will be process
         Returns:
-        OrderedDict:Returning Ordered dictionary  of token to occurrences by occurrences and then token (Dictionary that
-        remembers insertion order)
+        OrderedDict:Returning Ordered dictionary of token to occurrences Ordered by occurrences and then token (order
+        from low to high, dictionary that remembers insertion order)
+        file_name:Returning file name that was scanned
+       """
+    with directory_path_file.open(file_name, READ_MODE) as file:
+        file_content = file.read()
+        return process_file_content(file_name, file_content)
+
+
+def process_file_content(file_name, file_content):
+    """Find the above pattern and return a dictionary of token to occurrences in the processed file.
+        Parameters:
+                file_name (string): file name that will be process
+                file_content (binary): file content that will be process
+        Returns:
+        OrderedDict:Returning Ordered dictionary of token to occurrences Ordered by occurrences and then token (order
+        from low to high, dictionary that remembers insertion order)
         file_name:Returning file name that was scanned
        """
     file_dict = {}
-    with directory_path_file.open(file_name, READ_MODE) as file:
-        match = re.findall(b'<Tkn[0-9][0-9][0-9][A-Z][A-Z][A-Z][A-Z][A-Z]Tkn>', file.read())
-        if match:
-            for token in match:
-                file_dict = update_dict(file_dict, token)
-            # OrderedDict - Dictionary that remembers insertion order
-            # Sort by occurrences and token
-            ordered_dict = collections.OrderedDict(sorted(file_dict.items(), key=lambda x: (x[1], x[0]), reverse=True))
-            return {'file_name': file_name, 'ordered_dict': ordered_dict}
-        else:
-            return
+    match = re.findall(b'<Tkn[0-9][0-9][0-9][A-Z][A-Z][A-Z][A-Z][A-Z]Tkn>', file_content)
+    if match:
+        for token in match:
+            file_dict = update_dict(file_dict, token)
+        # OrderedDict - Dictionary that remembers insertion order
+        # Sort by occurrences and then bt token - order from low to high
+        ordered_dict = collections.OrderedDict(sorted(file_dict.items(), key=lambda x: (x[1], x[0])))
+        return {'file_name': file_name, 'ordered_dict': ordered_dict}
+    else:
+        return
 
 
 def update_dict(dictionary, key, size=1):
@@ -161,7 +182,7 @@ def create_output(token_occurrences_dict, path_occurrences_token_dict, csv_outpu
     with open(csv_output_path, WRITE_MODE, newline='') as file:
         writer = csv.writer(file)
         # OrderedDict - Dictionary that remembers insertion order
-        # Sort by path
+        # Sort by path order from low to high
         path_token_occurrences_dict_ordered = collections.OrderedDict(
             sorted(path_occurrences_token_dict.items()))
         for key, value in path_token_occurrences_dict_ordered.items():
