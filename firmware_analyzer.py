@@ -13,12 +13,12 @@ NUMBER_OF_THREADS = 5
 PATTERN = "<Tkn[0-9][0-9][0-9][A-Z][A-Z][A-Z][A-Z][A-Z]Tkn>"
 
 
-def analyze_firmware(directory_path, csv_output_path):
+def analyze_firmware(directory_path, csv_output_path, number_of_threads):
     # empty dictionaries
     global_dict = {}
     path_occurrences_token_dict = {}
 
-    travel_zip_file(directory_path, global_dict, path_occurrences_token_dict)
+    travel_zip_file(directory_path, global_dict, path_occurrences_token_dict, number_of_threads)
 
     create_output(global_dict, path_occurrences_token_dict, csv_output_path)
 
@@ -34,8 +34,8 @@ def create_output(global_dict, path_occurrences_token_dict, csv_output_path):
     print('\n'.join("{}: {}".format(k, v) for k, v in global_dict.items()))
 
 
-def travel_zip_file(directory_path, global_dict, path_occurrences_token_dict):
-    with concurrent.futures.ThreadPoolExecutor(NUMBER_OF_THREADS) as executor:
+def travel_zip_file(directory_path, global_dict, path_occurrences_token_dict, number_of_threads):
+    with concurrent.futures.ThreadPoolExecutor(number_of_threads) as executor:
         futures = []
         directory_path_file = zipfile.ZipFile(directory_path, READ_MODE)
         for file_name in directory_path_file.namelist():
@@ -74,6 +74,6 @@ if __name__ == '__main__':
                                      description='special authentication tokens collector')
     parser.add_argument('directory_path', help="path to a zip file on the disk (the firmware file)")
     parser.add_argument('csv_output_path', help="path to a CSV file output")
+    parser.add_argument('-number_of_threads', help="number of threads", type=int, default=NUMBER_OF_THREADS)
     args = parser.parse_args()
-
-    analyze_firmware(args.directory_path, args.csv_output_path)
+    analyze_firmware(args.directory_path, args.csv_output_path, args.number_of_threads)
