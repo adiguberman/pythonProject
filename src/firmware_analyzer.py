@@ -90,15 +90,16 @@ def process_files_under_zip_file(directory_path, token_occurrences_dict, path_oc
         # user's input parameter
         # 2. All the results of the executed processes of each file are saved in "futures" until all of the files were
         # scanned, this can cause out of memory issues. we assume that holding the data and consuming this memory
-        # penalty is better then locking the IO processing action and spanning CPU time.
+        # penalty is better then locking the IO processing action and spending CPU time.
         # TBD: is there a need to add a option to config the other strategy were each thread updates the dictionaries.
-        # out of scope.
+        # Out of scope.
 
         for file_name in directory_path_file.namelist():
+            # out of scope - monitor threads, no logging
             futures.append(executor.submit(handle_file, directory_path_file=directory_path_file, file_name=file_name))
         for future in concurrent.futures.as_completed(futures):
             result = future.result()
-            # no much token - continue
+            # no match token or error - continue
             if result and result['ordered_dict']:
                 path_occurrences_token_dict[result['file_name']] = result['ordered_dict']
                 for k, v in result['ordered_dict'].items():
@@ -118,9 +119,9 @@ def handle_file(directory_path_file, file_name):
        """
     file_dict = {}
     with directory_path_file.open(file_name, READ_MODE) as file:
-        z = re.findall(b'<Tkn[0-9][0-9][0-9][A-Z][A-Z][A-Z][A-Z][A-Z]Tkn>', file.read())
-        if z:
-            for token in z:
+        match = re.findall(b'<Tkn[0-9][0-9][0-9][A-Z][A-Z][A-Z][A-Z][A-Z]Tkn>', file.read())
+        if match:
+            for token in match:
                 file_dict = update_dict(file_dict, token)
             # OrderedDict - Dictionary that remembers insertion order
             # Sort by occurrences and token
