@@ -2,16 +2,14 @@
 Firmware Analyzer
 
 Special authentication tokens are in the following format:
-Starting with "<Tkn" then later 3 digits, 5 English capital letters followed by a
-"Tkn>". For example: <Tkn435JFIRKTkn>
+Starting with "<Tkn" then later 3 digits, 5 English capital letters followed by a "Tkn>".
+For example: <Tkn435JFIRKTkn>
 
 This script receives a path to a zip file on the disk (the firmware file) and a path to a CSV file output.
 Find the above pattern in all the files under the extracted file system of the zip file
-(recursively in all the folders underneath to) and report the results into the
-output CSV in the following format:
+(recursively in all the folders underneath to) and report the results into the output CSV in the following format:
 
-Path - The relative path of the found file to the location of the extracted
-zip file.
+Path - The relative path of the found file to the location of the extracted zip file.
 
 Token - The identified token string
 
@@ -20,16 +18,18 @@ Occurrences - The number of occurrences of the Token inside the file path
 The results are sorted by (Path, Occurrences, Token)
 
 Also the script print to the screen the total findings of each token in all of the files.
-For example if token <Tkn435JFIRKTkn> was found only in f1< 5 times and in f2 <3 times it should print <Tkn435JFIRKTkn> : 8
+For example if token <Tkn435JFIRKTkn> was found only in f1< 5 times and in f2 <3 times
+it should print <Tkn435JFIRKTkn> : 8
 """
 
 import zipfile
 import re
 import csv
-import collections
 import concurrent.futures
 import argparse
+from collections import OrderedDict
 
+PATTERN = b'<Tkn[0-9][0-9][0-9][A-Z][A-Z][A-Z][A-Z][A-Z]Tkn>'
 DECODE_FORMAT = 'ascii'
 WRITE_MODE = 'w'
 READ_MODE = "r"
@@ -143,13 +143,13 @@ def process_file_content(file_content):
         file_name:Returning file name that was scanned
        """
     file_dict = {}
-    match = re.findall(b'<Tkn[0-9][0-9][0-9][A-Z][A-Z][A-Z][A-Z][A-Z]Tkn>', file_content)
+    match = re.findall(PATTERN, file_content)
     if match:
         for token in match:
             file_dict = update_dict(file_dict, token)
         # OrderedDict - Dictionary that remembers insertion order
         # Sort by occurrences and then bt token - order from low to high
-        return collections.OrderedDict(sorted(file_dict.items(), key=lambda x: (x[1], x[0])))
+        return OrderedDict(sorted(file_dict.items(), key=lambda x: (x[1], x[0])))
 
 
 def update_dict(dictionary, key, size=1):
@@ -183,8 +183,7 @@ def create_output(token_occurrences_dict, path_occurrences_token_dict, csv_outpu
         writer = csv.writer(file)
         # OrderedDict - Dictionary that remembers insertion order
         # Sort by path order from low to high
-        path_token_occurrences_dict_ordered = collections.OrderedDict(
-            sorted(path_occurrences_token_dict.items()))
+        path_token_occurrences_dict_ordered = OrderedDict(sorted(path_occurrences_token_dict.items()))
         for key, value in path_token_occurrences_dict_ordered.items():
             for k, v in value.items():
                 writer.writerow([key, v, k.decode(DECODE_FORMAT)])
