@@ -1,8 +1,8 @@
 Interview Question
 ========================
-##Implementation
-###1. Firmware Analyzer
 
+Firmware Analyzer
+-----------------
 
 Suppose that one of the automotive vendors sent to you a firmware archive
 and asked you to find different security issues. We know that some of the
@@ -29,10 +29,13 @@ token in all of the files. for example if token <Tkn435JFIRKTkn> was found
 only in f1< 5 times and in f2 <3 times it should print <Tkn435JFIRKTkn> : 8,
 
 
-###Notes:
+Notes:
+------
 You can create a zip file with a file system underneath with files that
 contain the relevant tokens
 Implement the question in python 3
 You can assume that each file can be read into the memory
-###Bonus : 
+
+Bonus :
+-------
 In order to increase performance - add thread pool or process pool to process the file system.
